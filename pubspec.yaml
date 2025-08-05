@@ -1,0 +1,56 @@
+name: aidepos
+description: "A new Flutter project."
+
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/icon.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#FF6B35" # AIDEPOS orange background
+  adaptive_icon_foreground: "assets/images/icon.png" # Just the logo without background
+  web:
+    generate: true
+    image_path: "assets/images/icon.png"
+    background_color: "#FF6B35"
+    theme_color: "#FF6B35"
+  windows:
+    generate: true
+    image_path: "assets/images/icon.png"
+    icon_size: 256 # Increased from 48 to 256 for larger icons
+  macos:
+    generate: true
+    image_path: "assets/images/icon.png"
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+
+  # Example for adding custom fonts
+  # fonts:
+  #   - family: SF Pro Display
+  #     fonts:
+  #       - asset: assets/fonts/SF-Pro-Display-Regular.ttf
+  #       - asset: assets/fonts/SF-Pro-Display-Medium.ttf
+  #         weight: 500
+  #       - asset: assets/fonts/SF-Pro-Display-Bold.ttf
+  #         weight: 700
