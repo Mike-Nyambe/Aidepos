@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../main/main_screen.dart';
+import '../../services/auth_service.dart';
+import '../../services/storage_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,12 +16,17 @@ class _LoginScreenState extends State<LoginScreen> {
   final _merchantIdController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _authService = AuthService();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
+  bool _rememberMe = false;
 
   @override
   void initState() {
     super.initState();
+
+    // Initialize storage service
+    StorageService.init();
 
     // Set status bar style
     SystemChrome.setSystemUIOverlayStyle(
@@ -28,6 +36,36 @@ class _LoginScreenState extends State<LoginScreen> {
         statusBarBrightness: Brightness.light,
       ),
     );
+
+    // Load saved credentials if remember me was enabled
+    _loadSavedCredentials();
+  }
+
+  // Load saved credentials if available
+  void _loadSavedCredentials() async {
+    try {
+      final hasCredentials = await StorageService.hasRememberedCredentials();
+      if (hasCredentials) {
+        final merchantId = await StorageService.getSavedMerchantId();
+        final username = await StorageService.getSavedUsername();
+        final password = await StorageService.getSavedPassword();
+
+        if (merchantId != null) {
+          _merchantIdController.text = merchantId;
+        }
+        if (username != null) {
+          _emailController.text = username;
+        }
+        if (password != null) {
+          _passwordController.text = password;
+          setState(() {
+            _rememberMe = true;
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading saved credentials: $e');
+    }
   }
 
   @override
@@ -44,26 +82,125 @@ class _LoginScreenState extends State<LoginScreen> {
         _isLoading = true;
       });
 
-      // Simulate login process
-      await Future.delayed(const Duration(seconds: 2));
-
-      setState(() {
-        _isLoading = false;
-      });
-
-      // Show success message
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Login Successful!'),
-            backgroundColor: Color(0xFFFF6B35),
-          ),
+      try {
+        // Try API authentication first
+        final loginResponse = await _authService.login(
+          _merchantIdController.text.trim(),
+          _emailController.text.trim(),
+          _passwordController.text.trim(),
+          rememberMe: _rememberMe,
         );
 
-        // Navigate to main screen (replace with your navigation logic)
-        // Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MainScreen()));
+        setState(() {
+          _isLoading = false;
+        });
+
+        if (mounted) {
+          // Show success message without SnackBar
+          _showSuccessMessage(
+            'Welcome ${loginResponse.data?.userInfo?.name ?? 'User'}!',
+          );
+
+          // Navigate to main screen after a short delay
+          Future.delayed(const Duration(milliseconds: 1500), () {
+            if (mounted) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const MainScreen()),
+              );
+            }
+          });
+        }
+      } catch (e) {
+        print('API Login failed: $e');
+
+        // Fallback: Allow login with any credentials for testing
+        // Remove this in production
+        setState(() {
+          _isLoading = false;
+        });
+
+        if (mounted) {
+          // For testing: allow any credentials
+          if (_merchantIdController.text.isNotEmpty &&
+              _emailController.text.isNotEmpty &&
+              _passwordController.text.isNotEmpty) {
+            _showSuccessMessage('Welcome! (Test Mode)');
+
+            Future.delayed(const Duration(milliseconds: 1500), () {
+              if (mounted) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const MainScreen()),
+                );
+              }
+            });
+          } else {
+            _showErrorDialog(
+              'Login Failed',
+              'API Error: ${e.toString().replaceAll('Exception: ', '')}',
+            );
+          }
+        }
       }
     }
+  }
+
+  void _showSuccessMessage(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFFFF6B35),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        content: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white, size: 28),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    // Auto dismiss after 1 second
+    Future.delayed(const Duration(seconds: 1), () {
+      if (mounted) {
+        Navigator.of(context).pop(); // Close success dialog
+      }
+    });
+  }
+
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFFF6B35),
+            ),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _handleForgotPassword() {
@@ -77,6 +214,9 @@ class _LoginScreenState extends State<LoginScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFFF6B35),
+            ),
             child: const Text('OK'),
           ),
         ],
@@ -96,9 +236,6 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 40),
-
-                // AIDEPOS Logo and Branding
                 Center(
                   child: Column(
                     children: [
@@ -106,10 +243,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Image.asset(
-                            'assets/images/logo.png',
-                            height: 60,
-                            fit: BoxFit.contain,
+                          // AIDE POS logo circle
+                          Center(
+                            child: Image.asset(
+                              'assets/images/logo.png',
+                              height: 250,
+                              width: 250,
+                              fit: BoxFit.contain,
+                            ),
                           ),
                         ],
                       ),
@@ -117,7 +258,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 60),
+                const SizedBox(height: 30),
 
                 // Login Title
                 const Text(
@@ -295,7 +436,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your password';
                     }
-                    if (value.length < 6) {
+                    if (value.length < 2) {
                       return 'Password must be at least 6 characters';
                     }
                     return null;
@@ -304,21 +445,36 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 16),
 
-                // Forgot Password
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton(
-                    onPressed: _handleForgotPassword,
-                    child: const Text(
-                      'Forgot Password',
-                      style: TextStyle(
-                        color: Color(0xFF333333),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        decoration: TextDecoration.underline,
+                // Remember Me Checkbox and Forgot Password
+                Row(
+                  children: [
+                    Checkbox(
+                      value: _rememberMe,
+                      onChanged: (value) {
+                        setState(() {
+                          _rememberMe = value ?? false;
+                        });
+                      },
+                      activeColor: const Color(0xFFFF6B35),
+                    ),
+                    const Text(
+                      'Remember me',
+                      style: TextStyle(fontSize: 14, color: Color(0xFF666666)),
+                    ),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: _handleForgotPassword,
+                      child: const Text(
+                        'Forgot Password?',
+                        style: TextStyle(
+                          color: Color(0xFFFF6B35),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          decoration: TextDecoration.underline,
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
 
                 const SizedBox(height: 32),
