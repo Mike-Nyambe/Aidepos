@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../services/storage_service.dart';
+import '../start_counting/start_counting_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -9,6 +11,10 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
+  String _merchantId = '';
+  String _userEmail = '';
+  bool _isLoading = true;
+
   @override
   void initState() {
     super.initState();
@@ -21,6 +27,41 @@ class _MainScreenState extends State<MainScreen> {
         statusBarBrightness: Brightness.light,
       ),
     );
+
+    // Load user data
+    _loadUserData();
+  }
+
+  // Load user data from storage
+  void _loadUserData() async {
+    try {
+      final loginResponse = await StorageService.getLoginResponse();
+      final savedMerchantId = await StorageService.getSavedMerchantId();
+      final savedEmail = await StorageService.getSavedUsername();
+
+      setState(() {
+        // Use merchant ID from login response or saved merchant ID
+        _merchantId =
+            loginResponse?.data?.merchantId ??
+            savedMerchantId ??
+            'Unknown Merchant';
+
+        // Use email from user info or saved email
+        _userEmail =
+            loginResponse?.data?.userInfo?.email ??
+            savedEmail ??
+            'user@example.com';
+
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading user data: $e');
+      setState(() {
+        _merchantId = 'Unknown Merchant';
+        _userEmail = 'user@example.com';
+        _isLoading = false;
+      });
+    }
   }
 
   void _handleQuit() {
@@ -63,7 +104,7 @@ class _MainScreenState extends State<MainScreen> {
                 children: [
                   const SizedBox(height: 20),
 
-                  // Header with back arrow and greeting
+                  // Header with back arrow and user info
                   Row(
                     children: [
                       IconButton(
@@ -74,16 +115,41 @@ class _MainScreenState extends State<MainScreen> {
                           size: 24,
                         ),
                       ),
-                      const Expanded(
-                        child: Text(
-                          'Hello John Doe',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFFFF6B35),
-                          ),
-                        ),
+                      Expanded(
+                        child: _isLoading
+                            ? const Center(
+                                child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Color(0xFFFF6B35),
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              )
+                            : Column(
+                                children: [
+                                  Text(
+                                    _merchantId,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFFFF6B35),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    _userEmail,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w400,
+                                      color: Color(0xFF666666),
+                                    ),
+                                  ),
+                                ],
+                              ),
                       ),
                       const SizedBox(width: 48), // Balance the back button
                     ],
@@ -103,10 +169,11 @@ class _MainScreenState extends State<MainScreen> {
                             description:
                                 'Lorem ipsum dolor dolor contour ipsum lorem consectetur dolor contour ipsum dolor.',
                             onTap: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Start Counting tapped'),
-                                  backgroundColor: Color(0xFFFF6B35),
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const StartCountingScreen(),
                                 ),
                               );
                             },
@@ -207,7 +274,7 @@ class _MainScreenState extends State<MainScreen> {
         border: Border.all(color: const Color(0xFFFF6B35), width: 2),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFFF6B35).withValues(alpha: 0.1),
+            color: const Color(0xFFFF6B35).withOpacity(0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -228,7 +295,7 @@ class _MainScreenState extends State<MainScreen> {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFF6B35).withValues(alpha: 0.1),
+                    color: const Color(0xFFFF6B35).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Padding(

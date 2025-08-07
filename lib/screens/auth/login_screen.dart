@@ -247,8 +247,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           Center(
                             child: Image.asset(
                               'assets/images/logo.png',
-                              height: 250,
-                              width: 250,
+                              height: 190,
+                              width: 190,
                               fit: BoxFit.contain,
                             ),
                           ),
@@ -460,19 +460,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     const Text(
                       'Remember me',
                       style: TextStyle(fontSize: 14, color: Color(0xFF666666)),
-                    ),
-                    const Spacer(),
-                    TextButton(
-                      onPressed: _handleForgotPassword,
-                      child: const Text(
-                        'Forgot Password?',
-                        style: TextStyle(
-                          color: Color(0xFFFF6B35),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
                     ),
                   ],
                 ),
