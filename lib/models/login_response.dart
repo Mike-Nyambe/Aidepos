@@ -63,8 +63,8 @@ class LoginData {
     final dynamic storeListData = json['store_list'];
     if (storeListData is List) {
       storeList = storeListData
-          .where((item) => item is Map<String, dynamic>)
-          .map((store) => Store.fromJson(store as Map<String, dynamic>))
+          .whereType<Map<String, dynamic>>()
+          .map((store) => Store.fromJson(store))
           .where(
             (store) => store.storeId.isNotEmpty,
           ) // Filter out invalid stores

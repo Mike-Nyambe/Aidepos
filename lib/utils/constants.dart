@@ -1,6 +1,6 @@
 class Constants {
   // API Configuration
-  static const String baseUrl = 'http://aidepos.com';
+  static const String baseUrl = 'http://merckan.com';
 
   // Connection settings
   static const Duration connectionTimeout = Duration(seconds: 30);

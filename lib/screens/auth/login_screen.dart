@@ -63,9 +63,8 @@ class _LoginScreenState extends State<LoginScreen> {
           });
         }
       }
-    } catch (e) {
-      print('Error loading saved credentials: $e');
-    }
+      // ignore: empty_catches
+    } catch (e) {}
   }
 
   @override
@@ -112,8 +111,6 @@ class _LoginScreenState extends State<LoginScreen> {
           });
         }
       } catch (e) {
-        print('API Login failed: $e');
-
         // Fallback: Allow login with any credentials for testing
         // Remove this in production
         setState(() {
@@ -190,27 +187,6 @@ class _LoginScreenState extends State<LoginScreen> {
       builder: (context) => AlertDialog(
         title: Text(title),
         content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFFFF6B35),
-            ),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _handleForgotPassword() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Forgot Password'),
-        content: const Text(
-          'Password reset functionality will be implemented here.',
-        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -436,9 +412,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your password';
                     }
-                    if (value.length < 2) {
-                      return 'Password must be at least 6 characters';
-                    }
+                    // if (value.length < 6) {
+                    //   return 'Password must be at least 6 characters';
+                    // }
                     return null;
                   },
                 ),
@@ -476,7 +452,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       backgroundColor: const Color(0xFFFF6B35),
                       foregroundColor: Colors.white,
                       elevation: 2,
-                      shadowColor: const Color(0xFFFF6B35).withOpacity(0.3),
+                      shadowColor: const Color(
+                        0xFFFF6B35,
+                      ).withValues(alpha: 0.3),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
