@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../services/storage_service.dart';
+import '../start_counting/start_counting_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -9,6 +11,10 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
+  String _merchantId = '';
+  String _userEmail = '';
+  bool _isLoading = true;
+
   @override
   void initState() {
     super.initState();
@@ -21,193 +27,326 @@ class _MainScreenState extends State<MainScreen> {
         statusBarBrightness: Brightness.light,
       ),
     );
+
+    // Load user data
+    _loadUserData();
+  }
+
+  // Load user data from storage
+  void _loadUserData() async {
+    try {
+      final loginResponse = await StorageService.getLoginResponse();
+      final savedMerchantId = await StorageService.getSavedMerchantId();
+      final savedEmail = await StorageService.getSavedUsername();
+
+      setState(() {
+        // Use merchant ID from login response or saved merchant ID
+        _merchantId =
+            loginResponse?.data?.merchantId ??
+            savedMerchantId ??
+            'Unknown Merchant';
+
+        // Use email from user info or saved email
+        _userEmail =
+            loginResponse?.data?.userInfo?.email ??
+            savedEmail ??
+            'user@example.com';
+
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading user data: $e');
+      setState(() {
+        _merchantId = 'Unknown Merchant';
+        _userEmail = 'user@example.com';
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _handleQuit() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Quit Application'),
+        content: const Text('Are you sure you want to quit?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              // Handle quit logic here
+              SystemNavigator.pop();
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFFF6B35),
+            ),
+            child: const Text('Quit'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'AIDEPOS',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 2.0,
-          ),
-        ),
-        backgroundColor: const Color(0xFFFF6B35),
-        foregroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-      ),
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFF5F5F5), Colors.white],
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Welcome section
-                const SizedBox(height: 20),
-                const Text(
-                  'Welcome to',
-                  style: TextStyle(
-                    fontSize: 24,
-                    color: Color(0xFF666666),
-                    fontWeight: FontWeight.w300,
-                  ),
-                ),
-                const Text(
-                  'AIDEPOS Cloud System',
-                  style: TextStyle(
-                    fontSize: 28,
-                    color: Color(0xFF333333),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+      backgroundColor: Colors.white,
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 20),
 
-                const SizedBox(height: 30),
-
-                // Feature cards
-                Expanded(
-                  child: GridView.count(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 15,
-                    mainAxisSpacing: 15,
-                    childAspectRatio: 1.2,
+                  // Header with back arrow and user info
+                  Row(
                     children: [
-                      _buildFeatureCard(
-                        'Point of Sale',
-                        Icons.point_of_sale,
-                        'Manage sales and transactions',
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(
+                          Icons.arrow_back,
+                          color: Color(0xFFFF6B35),
+                          size: 24,
+                        ),
                       ),
-                      _buildFeatureCard(
-                        'Inventory',
-                        Icons.inventory,
-                        'Track your products',
+                      Expanded(
+                        child: _isLoading
+                            ? const Center(
+                                child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Color(0xFFFF6B35),
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              )
+                            : Column(
+                                children: [
+                                  Text(
+                                    _merchantId,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFFFF6B35),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    _userEmail,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w400,
+                                      color: Color(0xFF666666),
+                                    ),
+                                  ),
+                                ],
+                              ),
                       ),
-                      _buildFeatureCard(
-                        'Reports',
-                        Icons.analytics,
-                        'View sales analytics',
-                      ),
-                      _buildFeatureCard(
-                        'Settings',
-                        Icons.settings,
-                        'Configure your system',
-                      ),
+                      const SizedBox(width: 48), // Balance the back button
                     ],
                   ),
-                ),
 
-                // Bottom branding
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Color(0xFFFF6B35),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'AIDE\nPOS',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 6,
-                              fontWeight: FontWeight.bold,
-                              height: 1.0,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                  const SizedBox(height: 40),
+
+                  // Main feature cards
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
                         children: [
-                          Text(
-                            'Leading solution provider',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF666666),
-                              fontWeight: FontWeight.w400,
-                            ),
+                          // Start Counting Card
+                          _buildFeatureCard(
+                            iconPath: 'assets/icons/barcode-scanner.png',
+                            title: 'Start Counting',
+                            description:
+                                'Lorem ipsum dolor dolor contour ipsum lorem consectetur dolor contour ipsum dolor.',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const StartCountingScreen(),
+                                ),
+                              );
+                            },
                           ),
+
+                          const SizedBox(height: 20),
+
+                          // Master Data Card
+                          _buildFeatureCard(
+                            iconPath: 'assets/icons/folder.png',
+                            title: 'Master Data',
+                            description:
+                                'Lorem ipsum dolor dolor contour ipsum lorem consectetur dolor contour ipsum dolor.',
+                            onTap: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Master Data tapped'),
+                                  backgroundColor: Color(0xFFFF6B35),
+                                ),
+                              );
+                            },
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          // Settings Card
+                          _buildFeatureCard(
+                            iconPath: 'assets/icons/setting.png',
+                            title: 'Settings',
+                            description:
+                                'Lorem ipsum dolor dolor contour ipsum lorem consectetur dolor contour ipsum dolor.',
+                            onTap: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Settings tapped'),
+                                  backgroundColor: Color(0xFFFF6B35),
+                                ),
+                              );
+                            },
+                          ),
+
+                          const SizedBox(
+                            height: 100,
+                          ), // Extra space for quit button
                         ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
+
+          // Quit button - positioned absolute
+          Positioned(
+            bottom: 30,
+            right: 20,
+            child: TextButton.icon(
+              onPressed: _handleQuit,
+              icon: const Icon(
+                Icons.logout,
+                color: Color(0xFFFF6B35),
+                size: 20,
+              ),
+              label: const Text(
+                'Quit',
+                style: TextStyle(
+                  color: Color(0xFFFF6B35),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildFeatureCard(String title, IconData icon, String subtitle) {
+  Widget _buildFeatureCard({
+    required String iconPath,
+    required String title,
+    required String description,
+    required VoidCallback onTap,
+  }) {
     return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFF6B35), width: 2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
+            color: const Color(0xFFFF6B35).withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () {
-            // Handle card tap
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('$title tapped'),
-                backgroundColor: const Color(0xFFFF6B35),
-              ),
-            );
-          },
+          borderRadius: BorderRadius.circular(10),
+          onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(8.0),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(icon, size: 40, color: const Color(0xFFFF6B35)),
-                const SizedBox(height: 12),
+                // Custom icon at the top
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF6B35).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Image.asset(
+                      iconPath,
+                      width: 32,
+                      height: 32,
+                      fit: BoxFit.contain,
+                      color: const Color(0xFFFF6B35),
+                      errorBuilder: (context, error, stackTrace) {
+                        // Fallback to default icons if custom icons don't exist
+                        IconData fallbackIcon;
+                        if (iconPath.contains('scanner')) {
+                          fallbackIcon = Icons.qr_code_scanner;
+                        } else if (iconPath.contains('files')) {
+                          fallbackIcon = Icons.folder_copy_outlined;
+                        } else {
+                          fallbackIcon = Icons.settings;
+                        }
+                        return Icon(
+                          fallbackIcon,
+                          color: const Color(0xFFFF6B35),
+                          size: 32,
+                        );
+                      },
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Title
                 Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 16,
+                    fontSize: 20,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF333333),
                   ),
                 ),
-                const SizedBox(height: 4),
+
+                const SizedBox(height: 8),
+
+                // Description
                 Text(
-                  subtitle,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF666666),
+                  description,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                    height: 1.4,
                   ),
                 ),
               ],

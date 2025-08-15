@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../auth/login_screen.dart';
+// import '../main/main_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -81,7 +82,7 @@ class _SplashScreenState extends State<SplashScreen>
                   child: ScaleTransition(
                     scale: _scaleAnimation,
                     child: Image.asset(
-                      'assets/images/logo.png',
+                      'assets/images/logo-splas.png',
                       height: 300,
                       width: 300,
                       fit: BoxFit.contain,
